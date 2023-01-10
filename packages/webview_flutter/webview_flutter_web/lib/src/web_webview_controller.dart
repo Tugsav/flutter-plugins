@@ -11,15 +11,41 @@ import 'package:webview_flutter_platform_interface/webview_flutter_platform_inte
 import 'http_request_factory.dart';
 import 'shims/dart_ui.dart' as ui;
 
+/// Possible values for iFrame referrer policy.
+enum ReferrerPolicy {
+  // No referrer information will be sent along with a request.
+  noReferrer,
+  // Default. The referrer header will not be sent to origins without HTTPS.
+  noReferrerWhenDowngrade,
+  // Send only scheme, host, and port to the request client.
+  origin,
+  // For cross-origin requests: Send only scheme, host, and port. For same-origin requests: Also include the path.
+  originWhenCrossOrigin,
+  // For same-origin requests: Referrer info will be sent.
+  // For cross-origin requests: No referrer info will be sent.
+  sameOrigin,
+  // Only send referrer info if the security level is the same (e.g. HTTPS to HTTPS).
+  // Do not send to a less secure destination (e.g. HTTPS to HTTP).
+  strictOrigin,
+  // Send full path when performing a same-origin request. Send only origin when the security level stays the same (e.g. HTTPS to HTTPS).
+  // Send no header to a less secure destination (HTTPS to HTTP).
+  strictOriginWhenCrossOrigin,
+  // Send origin, path and query string (but not fragment, password, or username). This value is considered unsafe
+  unsafeUrl
+}
+
 /// An implementation of [PlatformWebViewControllerCreationParams] using Flutter
 /// for Web API.
 @immutable
 class WebWebViewControllerCreationParams
     extends PlatformWebViewControllerCreationParams {
-  /// Creates a new [AndroidWebViewControllerCreationParams] instance.
+  /// Creates a new [WebWebViewControllerCreationParams] instance.
   WebWebViewControllerCreationParams({
     @visibleForTesting this.httpRequestFactory = const HttpRequestFactory(),
-  }) : super();
+    this.iFrameReferrerPolicy = ReferrerPolicy.noReferrerWhenDowngrade,
+  }) : super() {
+    iFrame.referrerPolicy = _referrerPolicyNames[iFrameReferrerPolicy];
+  }
 
   /// Creates a [WebWebViewControllerCreationParams] instance based on [PlatformWebViewControllerCreationParams].
   WebWebViewControllerCreationParams.fromPlatformWebViewControllerCreationParams(
@@ -28,12 +54,28 @@ class WebWebViewControllerCreationParams
     PlatformWebViewControllerCreationParams params, {
     @visibleForTesting
         HttpRequestFactory httpRequestFactory = const HttpRequestFactory(),
-  }) : this(httpRequestFactory: httpRequestFactory);
+  }) : this(
+            httpRequestFactory: httpRequestFactory,
+            iFrameReferrerPolicy: ReferrerPolicy.noReferrerWhenDowngrade);
 
   static int _nextIFrameId = 0;
 
   /// Handles creating and sending URL requests.
   final HttpRequestFactory httpRequestFactory;
+
+  /// Selected referrer policy for the iFrame.
+  final ReferrerPolicy iFrameReferrerPolicy;
+  static final Map _referrerPolicyNames = {
+    ReferrerPolicy.noReferrer: 'no-referrer',
+    ReferrerPolicy.noReferrerWhenDowngrade: 'no-referrer-when-downgrade',
+    ReferrerPolicy.origin: 'origin',
+    ReferrerPolicy.originWhenCrossOrigin: 'origin-when-cross-origin',
+    ReferrerPolicy.sameOrigin: 'same-origin',
+    ReferrerPolicy.strictOrigin: 'strict-origin',
+    ReferrerPolicy.strictOriginWhenCrossOrigin:
+        'strict-origin-when-cross-origin',
+    ReferrerPolicy.unsafeUrl: 'unsafe-url'
+  };
 
   /// The underlying element used as the WebView.
   @visibleForTesting
